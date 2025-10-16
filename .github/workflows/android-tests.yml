@@ -37,6 +37,14 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
+    - name: Cache Appium drivers
+      uses: actions/cache@v4
+      with:
+        path: ~/.appium
+        key: appium-drivers-${{ runner.os }}-v3
+        restore-keys: |
+          appium-drivers-${{ runner.os }}-
+
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
@@ -45,6 +53,19 @@ jobs:
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
+        
+        # Verify KVM is available
+        if [ -c /dev/kvm ]; then
+          echo "✅ KVM is available"
+          ls -la /dev/kvm
+        else
+          echo "⚠️ KVM not available, emulator will be slower"
+        fi
+        
+        # Check system resources
+        echo "💾 System resources:"
+        free -h
+        nproc
 
     - name: Create AVD and generate snapshot for caching
       uses: reactivecircus/android-emulator-runner@v2
@@ -54,23 +75,54 @@ jobs:
         arch: x86_64
         profile: Nexus 6
         cores: 2
-        ram-size: 4096M
-        heap-size: 1024M
+        ram-size: 3072M
+        heap-size: 512M
         sdcard-path-or-size: 100M
         avd-name: test_emulator
         force-avd-creation: false
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save
         disable-animations: true
-        script: echo "Generated AVD snapshot for caching."
+        script: |
+          echo "📱 Emulator is ready for caching"
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          echo "✅ AVD snapshot generated"
 
     - name: Install Appium
       run: |
-        # Install specific stable version of Appium
-        npm install -g appium@2.11.5
-        # Install UiAutomator2 driver
-        appium driver install uiautomator2@3.7.4
-        # Verify installation
+        # Install latest stable Appium
+        npm install -g appium@next
+        
+        # Check current driver status
+        echo "🔍 Checking existing drivers..."
+        appium driver list --installed || echo "No drivers found"
+        
+        # Try to install/update UiAutomator2 driver
+        echo "📦 Installing/updating UiAutomator2 driver..."
+        if appium driver list --installed | grep -q "uiautomator2"; then
+          echo "Driver already exists, updating..."
+          appium driver update uiautomator2
+        else
+          echo "Installing new driver..."
+          appium driver install uiautomator2
+        fi
+        
+        # Final verification
+        echo "✅ Final driver status:"
         appium driver list --installed
+        
+        # Test Appium server can start
+        echo "🧪 Testing Appium server startup..."
+        timeout 30 appium --port 4723 &
+        APPIUM_PID=$!
+        sleep 5
+        if curl -s http://localhost:4723/status > /dev/null; then
+          echo "✅ Appium server test successful"
+        else
+          echo "⚠️ Appium server test failed, but continuing..."
+        fi
+        kill $APPIUM_PID || true
 
     - name: Download Swiss Airlines APK
       run: |
@@ -115,49 +167,76 @@ jobs:
         arch: x86_64
         profile: Nexus 6
         cores: 2
-        ram-size: 4096M
-        heap-size: 1024M
+        ram-size: 3072M
+        heap-size: 512M
         avd-name: test_emulator
         force-avd-creation: false
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save
         disable-animations: true
         script: |
-          # Wait for emulator to be ready
+          # Wait for emulator to be fully ready
           echo "🔄 Waiting for emulator to be ready..."
           adb wait-for-device
+          
+          # Ensure device is unlocked and ready
           adb shell input keyevent 82 # Unlock screen
+          adb shell input keyevent 4  # Back button (close any dialogs)
+          
+          # Disable animations completely
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
           
           # Verify emulator is working
           echo "📱 Verifying emulator status..."
           adb devices
-          adb shell getprop sys.boot_completed
+          BOOT_COMPLETED=$(adb shell getprop sys.boot_completed)
+          echo "Boot completed: $BOOT_COMPLETED"
+          
+          # Wait a bit more for stability
+          sleep 10
           
           # Create screenshots directory
           mkdir -p screenshots
           
-          # Start Appium in background with logging
+          # Start Appium in background with reduced logging
           echo "🚀 Starting Appium server..."
-          appium --port 4723 --log-level info > appium.log 2>&1 &
+          appium --port 4723 --log-level error > appium.log 2>&1 &
           APPIUM_PID=$!
           
           # Wait for Appium to start
-          sleep 15
+          echo "⏳ Waiting for Appium to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:4723/status > /dev/null; then
+              echo "✅ Appium server is running (attempt $i)"
+              break
+            fi
+            echo "Waiting... (attempt $i/30)"
+            sleep 2
+          done
           
-          # Verify Appium is running
+          # Final verification
           if curl -s http://localhost:4723/status > /dev/null; then
-            echo "✅ Appium server is running"
+            echo "✅ Appium server confirmed running"
           else
             echo "❌ Appium server failed to start"
+            echo "📄 Appium log:"
             cat appium.log
             exit 1
           fi
           
-          # Run tests
+          # Run tests with timeout
           echo "🧪 Running Swiss Airlines tests..."
-          npm run test:android || true
+          timeout 600 npm run test:android || {
+            echo "⚠️ Tests completed with timeout/issues"
+            echo "📄 Final Appium log:"
+            tail -50 appium.log
+          }
           
-          # Stop Appium
+          # Stop Appium gracefully
+          echo "🛑 Stopping Appium server..."
           kill $APPIUM_PID || true
+          sleep 2
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
