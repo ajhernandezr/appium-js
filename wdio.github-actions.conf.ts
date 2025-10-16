@@ -78,7 +78,7 @@ export const config = {
     
     mochaOpts: {
         ui: 'bdd',
-        timeout: 180000 // 3 minutes for GitHub Actions (slower CI environment)
+        timeout: 120000
     },
 
     // Hooks for better debugging

@@ -140,23 +140,37 @@ jobs:
           echo "🔄 Waiting for emulator to be ready..."
           adb wait-for-device
           
+          # Wait for boot completion with proper loop
+          echo "⏳ Waiting for boot completion..."
+          BOOT_ATTEMPTS=0
+          while [ $BOOT_ATTEMPTS -lt 60 ]; do
+            BOOT_COMPLETED=$(adb shell getprop sys.boot_completed 2>/dev/null || echo "")
+            if [ "$BOOT_COMPLETED" = "1" ]; then
+              echo "✅ Boot completed successfully"
+              break
+            fi
+            echo "Boot status: '$BOOT_COMPLETED' (attempt $((BOOT_ATTEMPTS + 1))/60)"
+            BOOT_ATTEMPTS=$((BOOT_ATTEMPTS + 1))
+            sleep 2
+          done
+          
           # Ensure device is unlocked and ready
-          adb shell input keyevent 82 # Unlock screen
-          adb shell input keyevent 4  # Back button (close any dialogs)
+          adb shell input keyevent 82 || echo "Unlock keyevent sent"
+          adb shell input keyevent 4 || echo "Back keyevent sent"
           
           # Disable animations completely
-          adb shell settings put global window_animation_scale 0
-          adb shell settings put global transition_animation_scale 0
-          adb shell settings put global animator_duration_scale 0
+          adb shell settings put global window_animation_scale 0 || echo "Animation scale setting failed"
+          adb shell settings put global transition_animation_scale 0 || echo "Transition scale setting failed"  
+          adb shell settings put global animator_duration_scale 0 || echo "Animator scale setting failed"
           
-          # Verify emulator is working
-          echo "📱 Verifying emulator status..."
+          # Final verification
+          echo "📱 Final emulator verification..."
           adb devices
-          BOOT_COMPLETED=$(adb shell getprop sys.boot_completed)
-          echo "Boot completed: $BOOT_COMPLETED"
+          echo "Boot completed: $(adb shell getprop sys.boot_completed)"
           
-          # Wait a bit more for stability
-          sleep 10
+          # Wait for stability
+          echo "⏳ Waiting for stability..."
+          sleep 15
           
           # Create screenshots directory
           mkdir -p screenshots
@@ -168,12 +182,14 @@ jobs:
           
           # Wait for Appium to start
           echo "⏳ Waiting for Appium to start..."
-          for i in {1..30}; do
+          ATTEMPTS=0
+          while [ $ATTEMPTS -lt 30 ]; do
+            ATTEMPTS=$((ATTEMPTS + 1))
             if curl -s http://localhost:4723/status > /dev/null; then
-              echo "✅ Appium server is running (attempt $i)"
+              echo "✅ Appium server is running (attempt $ATTEMPTS)"
               break
             fi
-            echo "Waiting... (attempt $i/30)"
+            echo "Waiting... (attempt $ATTEMPTS/30)"
             sleep 2
           done
           
