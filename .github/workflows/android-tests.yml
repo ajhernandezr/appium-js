@@ -31,19 +31,19 @@ jobs:
         echo "Verifying installations..."
         npm list @wdio/cli @wdio/appium-service --depth=0 || echo "Dependencies installed successfully"
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+    # - name: Setup Java
+    #   uses: actions/setup-java@v4
+    #   with:
+    #     distribution: 'temurin'
+    #     java-version: '17'
 
-    - name: Cache Appium drivers
-      uses: actions/cache@v4
-      with:
-        path: ~/.appium
-        key: appium-drivers-${{ runner.os }}-v3
-        restore-keys: |
-          appium-drivers-${{ runner.os }}-
+    # - name: Cache Appium drivers
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: ~/.appium
+    #     key: appium-drivers-${{ runner.os }}-v3
+    #     restore-keys: |
+    #       appium-drivers-${{ runner.os }}-
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
@@ -53,76 +53,53 @@ jobs:
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
-        
-        # Verify KVM is available
-        if [ -c /dev/kvm ]; then
-          echo "✅ KVM is available"
-          ls -la /dev/kvm
-        else
-          echo "⚠️ KVM not available, emulator will be slower"
-        fi
-        
-        # Check system resources
-        echo "💾 System resources:"
-        free -h
-        nproc
 
-    - name: Create AVD and generate snapshot for caching
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 29
-        target: google_apis
-        arch: x86_64
-        profile: Nexus 6
-        cores: 2
-        ram-size: 3072M
-        heap-size: 512M
-        sdcard-path-or-size: 100M
-        avd-name: test_emulator
-        force-avd-creation: false
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save
-        disable-animations: true
-        script: |
-          echo "📱 Emulator is ready for caching"
-          adb shell settings put global window_animation_scale 0
-          adb shell settings put global transition_animation_scale 0
-          adb shell settings put global animator_duration_scale 0
-          echo "✅ AVD snapshot generated"
+    # - name: Create AVD and generate snapshot for caching
+    #   uses: reactivecircus/android-emulator-runner@v2
+    #   with:
+    #     api-level: 29
+    #     target: google_apis
+    #     arch: x86_64
+    #     profile: Nexus 6
+    #     cores: 2
+    #     ram-size: 3072M
+    #     heap-size: 512M
+    #     sdcard-path-or-size: 100M
+    #     avd-name: test_emulator
+    #     force-avd-creation: false
+    #     emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save
+    #     disable-animations: true
+    #     script: |
+    #       echo "📱 Emulator is ready for caching"
+    #       adb shell settings put global window_animation_scale 0
+    #       adb shell settings put global transition_animation_scale 0
+    #       adb shell settings put global animator_duration_scale 0
+    #       echo "✅ AVD snapshot generated"
 
     - name: Install Appium
       run: |
-        # Install latest stable Appium
-        npm install -g appium@next
+        # Clear any existing Appium installation
+        echo "🧹 Cleaning previous installations..."
+        npm uninstall -g appium || true
         
-        # Check current driver status
-        echo "🔍 Checking existing drivers..."
-        appium driver list --installed || echo "No drivers found"
+        # Install specific compatible versions
+        echo "📦 Installing Appium 2.x with compatible driver..."
+        npm install -g appium@2.11.2
         
-        # Try to install/update UiAutomator2 driver
-        echo "📦 Installing/updating UiAutomator2 driver..."
-        if appium driver list --installed | grep -q "uiautomator2"; then
-          echo "Driver already exists, updating..."
-          appium driver update uiautomator2
-        else
-          echo "Installing new driver..."
-          appium driver install uiautomator2
-        fi
+        # Verify Appium version
+        appium --version
+        
+        # Remove any existing drivers
+        appium driver uninstall uiautomator2 || echo "No existing driver to remove"
+        
+        # Install compatible UiAutomator2 driver version
+        echo "🔧 Installing compatible UiAutomator2 driver..."
+        appium driver install uiautomator2@2.34.1
         
         # Final verification
-        echo "✅ Final driver status:"
+        echo "✅ Final installation status:"
+        appium --version
         appium driver list --installed
-        
-        # Test Appium server can start
-        echo "🧪 Testing Appium server startup..."
-        timeout 30 appium --port 4723 &
-        APPIUM_PID=$!
-        sleep 5
-        if curl -s http://localhost:4723/status > /dev/null; then
-          echo "✅ Appium server test successful"
-        else
-          echo "⚠️ Appium server test failed, but continuing..."
-        fi
-        kill $APPIUM_PID || true
 
     - name: Download Swiss Airlines APK
       run: |
