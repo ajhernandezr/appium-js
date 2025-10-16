@@ -1,15 +1,15 @@
 import { expect } from '@wdio/globals'
 
-describe('Calculator App - Simple Test', () => {
-    it('should launch and verify Calculator app is running', async () => {
-        console.log('🚀 Starting Calculator app test...')
-        console.log('📱 Package: com.simplemobiletools.calculator')
+describe('API Demos App - Simple Test', () => {
+    it('should launch and verify API Demos app is running', async () => {
+        console.log('🚀 Starting API Demos app test...')
+        console.log('📱 Package: io.appium.android.apis')
         
         // Wait for app to load
         await driver.pause(8000)
         
         // Take screenshot to verify app launched
-        await driver.saveScreenshot('./screenshots/calculator-app-launched.png')
+        await driver.saveScreenshot('./screenshots/api-demos-app-launched.png')
         console.log('📸 Screenshot taken')
         
         // Get page source to verify app content
@@ -20,26 +20,47 @@ describe('Calculator App - Simple Test', () => {
         // Basic verification - app should have substantial content
         expect(pageSource.length).toBeGreaterThan(200)
         
-        // Try to find Calculator-specific elements
+        // Try to find API Demos specific elements
         try {
-            // Look for common Calculator app text/elements
-            const calculatorElements = [
-                '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-                '+', '-', '=', 'Calculator', 'Clear'
+            // Look for common API Demos app elements
+            const apiDemosElements = [
+                'API Demos', 'Animation', 'App', 'Content', 'Graphics', 
+                'Media', 'NFC', 'OS', 'Preference', 'Text', 'Views'
             ]
             
             let foundElements = 0
-            for (const element of calculatorElements) {
+            for (const element of apiDemosElements) {
                 if (pageSource.includes(element)) {
                     foundElements++
                     console.log(`✅ Found element: ${element}`)
                 }
             }
             
-            console.log(`📊 Found ${foundElements}/${calculatorElements.length} expected elements`)
+            console.log(`📊 Found ${foundElements}/${apiDemosElements.length} expected elements`)
             
-            // We expect to find at least some calculator elements
-            expect(foundElements).toBeGreaterThan(0)
+            // We expect to find at least some API demos elements
+            expect(foundElements).toBeGreaterThan(2)
+            
+            // Try to interact with the app by clicking on "Animation" if available
+            try {
+                const animationElement = await driver.$('//android.widget.TextView[@text="Animation"]')
+                if (await animationElement.isDisplayed()) {
+                    console.log('🎯 Found Animation section')
+                    await animationElement.click()
+                    await driver.pause(2000)
+                    
+                    // Take screenshot after navigation
+                    await driver.saveScreenshot('./screenshots/api-demos-animation-section.png')
+                    console.log('📸 Animation section screenshot taken')
+                    
+                    // Go back to main screen
+                    await driver.back()
+                    await driver.pause(1000)
+                    console.log('🔙 Returned to main screen')
+                }
+            } catch (interactionError) {
+                console.log('ℹ️ Interaction test skipped - element not found or not clickable')
+            }
             
         } catch (error) {
             console.log('⚠️ Element detection failed, but app launched successfully')
@@ -47,6 +68,6 @@ describe('Calculator App - Simple Test', () => {
         }
         
         // Final success verification
-        console.log('✅ Calculator app test completed successfully!')
+        console.log('✅ API Demos app test completed successfully!')
     })
 })

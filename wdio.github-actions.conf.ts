@@ -16,12 +16,12 @@ export const config = {
         'appium:fullReset': false,
         'appium:newCommandTimeout': 300000, // 5 minutes timeout (increased for CI)
         
-        // Calculator APK configuration (simple demo app)
-        // APK downloaded in GitHub Actions from SimpleMobileTools
-        'appium:app': './apks/calculator.apk', // Path matches workflow
-        'appium:appPackage': 'com.simplemobiletools.calculator', // Calculator package
-        'appium:appActivity': '.activities.MainActivity', // Relative activity name
-        'appium:appWaitActivity': 'com.simplemobiletools.calculator.*', // Wait for any Calculator activity
+        // API Demos APK configuration (Android testing app)
+        // APK downloaded in GitHub Actions from Appium project
+        'appium:app': './apks/ApiDemos-debug.apk', // Path matches workflow - original filename
+        'appium:appPackage': 'io.appium.android.apis', // API Demos package
+        'appium:appActivity': '.ApiDemos', // Main activity
+        'appium:appWaitActivity': 'io.appium.android.apis.*', // Wait for any API Demos activity
         
         // For web browser testing (comment for native app testing)
         // browserName: 'Chrome',

@@ -46,21 +46,22 @@ jobs:
           npm ci
           npm list @wdio/cli @wdio/appium-service --depth=0 || echo "Dependencies installed successfully"
 
-      - name: Download demo APK
+      - name: Descargar APK de ejemplo
         run: |
           mkdir -p ./apks
-          echo "📦 Downloading demo APK Calculator 5.12.0..."
-          curl -L --fail -o ./apks/calculator.apk \
-            "https://github.com/SimpleMobileTools/Simple-Calculator/releases/download/5.12.0/calculator-fdroid-release.apk"
+          echo "📦 Descargando APK de ejemplo ApiDemos-debug.apk..."
+          curl -L --fail -o ./apks/ApiDemos-debug.apk \
+            "https://github.com/appium/android-apidemos/releases/download/v3.1.0/ApiDemos-debug.apk"
 
-          APK_SIZE=$(stat -c%s "./apks/calculator.apk")
-          echo "📁 APK size: $APK_SIZE bytes"
+          APK_SIZE=$(stat -c%s "./apks/ApiDemos-debug.apk")
+          echo "📁 Tamaño del APK: $APK_SIZE bytes"
           if [ $APK_SIZE -lt 100000 ]; then
-            echo "❌ APK file too small — download failed"
-            head -20 ./apks/calculator.apk || true
+            echo "❌ El archivo APK es demasiado pequeño — descarga fallida"
+            head -20 ./apks/ApiDemos-debug.apk || true
             exit 1
           fi
-          echo "✅ Calculator APK downloaded successfully"
+          echo "✅ APK de ApiDemos descargado exitosamente"
+
 
       - name: Run tests with Android emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -76,7 +77,7 @@ jobs:
           force-avd-creation: true  # Ensure AVD is created
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save -accel on
           disable-animations: true
-          script: echo "🔄 Waiting for emulator..." && adb wait-for-device && echo "⏳ Boot check..." && (i=1; while [ $i -le 120 ] && [ "$(adb shell getprop sys.boot_completed 2>/dev/null || echo '')" != "1" ]; do echo "Boot attempt $i/120"; i=$((i+1)); sleep 5; done) && echo "✅ Boot completed" && adb shell input keyevent 82 && adb shell input keyevent 4 && adb shell settings put global window_animation_scale 0 && adb shell settings put global transition_animation_scale 0 && adb shell settings put global animator_duration_scale 0 && echo "📱 Installing Calculator APK..." && adb install -r ./apks/calculator.apk && echo "✅ APK installed" && echo "📱 Emulator ready" && adb devices && sleep 10 && mkdir -p screenshots && npm install -g appium && appium driver update uiautomator2 && echo "🚀 Starting Appium..." && appium --port 4723 --log-level error > appium.log 2>&1 & APPIUM_PID=$! && echo "⏳ Appium startup..." && (i=1; while [ $i -le 60 ] && ! curl -s http://localhost:4723/status >/dev/null; do echo "Appium attempt $i/60"; i=$((i+1)); sleep 2; done) && echo "✅ Appium ready" && npm run test:android && echo "🛑 Stopping Appium..." && kill $APPIUM_PID
+          script: echo "🔄 Waiting for emulator..." && adb wait-for-device && echo "⏳ Boot check..." && (i=1; while [ $i -le 120 ] && [ "$(adb shell getprop sys.boot_completed 2>/dev/null || echo '')" != "1" ]; do echo "Boot attempt $i/120"; i=$((i+1)); sleep 5; done) && echo "✅ Boot completed" && adb shell input keyevent 82 && adb shell input keyevent 4 && adb shell settings put global window_animation_scale 0 && adb shell settings put global transition_animation_scale 0 && adb shell settings put global animator_duration_scale 0 && echo "📱 Installing Calculator APK..." && adb install -r ./apks/calculator.apk && echo "✅ APK installed" && echo "� Verifying APK installation..." && adb shell pm list packages | grep calculator && echo "🔍 Checking APK activities..." && adb shell dumpsys package com.simplemobiletools.calculator | grep -A 20 "Activity Resolver Table:" && echo "�📱 Emulator ready" && adb devices && sleep 10 && mkdir -p screenshots && npm install -g appium && appium driver update uiautomator2 && echo "🚀 Starting Appium..." && appium --port 4723 --log-level error > appium.log 2>&1 & APPIUM_PID=$! && echo "⏳ Appium startup..." && (i=1; while [ $i -le 60 ] && ! curl -s http://localhost:4723/status >/dev/null; do echo "Appium attempt $i/60"; i=$((i+1)); sleep 2; done) && echo "✅ Appium ready" && npm run test:android && echo "🛑 Stopping Appium..." && kill $APPIUM_PID
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
