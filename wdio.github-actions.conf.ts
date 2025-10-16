@@ -20,7 +20,7 @@ export const config = {
         // APK downloaded in GitHub Actions from SimpleMobileTools
         'appium:app': './apks/calculator.apk', // Path matches workflow
         'appium:appPackage': 'com.simplemobiletools.calculator', // Calculator package
-        'appium:appActivity': 'com.simplemobiletools.calculator.activities.MainActivity', // Main activity
+        'appium:appActivity': '.activities.MainActivity', // Relative activity name
         'appium:appWaitActivity': 'com.simplemobiletools.calculator.*', // Wait for any Calculator activity
         
         // For web browser testing (comment for native app testing)
