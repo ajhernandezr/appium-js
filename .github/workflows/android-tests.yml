@@ -45,8 +45,8 @@ jobs:
     #     restore-keys: |
     #       appium-drivers-${{ runner.os }}-
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+    #- name: Setup Android SDK
+    #  uses: android-actions/setup-android@v3
 
     - name: Enable KVM (for hardware acceleration)
       run: |
@@ -78,26 +78,11 @@ jobs:
 
     - name: Install Appium
       run: |
-        # Clear any existing Appium installation
-        echo "🧹 Cleaning previous installations..."
-        npm uninstall -g appium || true
+        # Use compatible versions: Appium 3.x + UiAutomator2 latest
+        npm install -g appium
+        appium driver install uiautomator2
         
-        # Install specific compatible versions
-        echo "📦 Installing Appium 2.x with compatible driver..."
-        npm install -g appium@2.11.2
-        
-        # Verify Appium version
-        appium --version
-        
-        # Remove any existing drivers
-        appium driver uninstall uiautomator2 || echo "No existing driver to remove"
-        
-        # Install compatible UiAutomator2 driver version
-        echo "🔧 Installing compatible UiAutomator2 driver..."
-        appium driver install uiautomator2@2.34.1
-        
-        # Final verification
-        echo "✅ Final installation status:"
+        # Verify installation
         appium --version
         appium driver list --installed
 
