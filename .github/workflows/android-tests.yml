@@ -47,6 +47,34 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
+    - name: Download Swiss Airlines APK
+      run: |
+        mkdir -p ./apks
+        echo "Downloading Swiss Airlines APK (com.yoc.swiss.swiss)..."
+        
+        # Try primary download
+        if curl -L -o ./apks/swiss-airlines.apk "https://d.apkpure.com/b/APK/com.yoc.swiss.swiss?version=latest"; then
+          echo "✅ Primary download completed"
+        else
+          echo "⚠️ Primary download failed, trying alternative..."
+          curl -L -o ./apks/swiss-airlines.apk "https://apkpure.net/swiss-international-air-lines/com.yoc.swiss.swiss/download"
+        fi
+        
+        # Verify APK
+        if [ -f "./apks/swiss-airlines.apk" ]; then
+          APK_SIZE=$(stat -c%s "./apks/swiss-airlines.apk")
+          echo "📁 APK file size: $APK_SIZE bytes"
+          if [ $APK_SIZE -gt 1048576 ]; then
+            echo "✅ APK file size is valid"
+          else
+            echo "❌ APK file too small"
+            exit 1
+          fi
+        else
+          echo "❌ APK download failed"
+          exit 1
+        fi
+
     - name: Run tests with Android emulator
       uses: reactivecircus/android-emulator-runner@v2
       with:
