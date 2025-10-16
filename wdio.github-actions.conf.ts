@@ -9,27 +9,29 @@ export const config = {
     
     capabilities: [{
         platformName: 'Android',
-        'appium:platformVersion': '10', // Android 10 (API 29)
-        'appium:deviceName': 'test_emulator', // AVD name
+        'appium:platformVersion': '10', // Android 10 (API 29) - matches workflow
+        'appium:deviceName': 'test_emulator', // Matches AVD name in workflow
         'appium:automationName': 'UiAutomator2',
         'appium:noReset': false,
         'appium:fullReset': false,
-        'appium:newCommandTimeout': 240000, // 4 minutes timeout
+        'appium:newCommandTimeout': 300000, // 5 minutes timeout (increased for CI)
         
-        // For Swiss Airlines APK testing (official Play Store version)
-        // Download from: https://play.google.com/store/apps/details?id=com.yoc.swiss.swiss
-        'appium:app': './apks/swiss-airlines.apk',
-        'appium:appPackage': 'com.yoc.swiss.swiss',
-        'appium:appActivity': 'com.yoc.swiss.swiss.MainActivity',
-        'appium:appWaitActivity': 'com.yoc.swiss.swiss.*',
+        // Swiss Airlines APK configuration (matches workflow download)
+        // APK downloaded in GitHub Actions from APKPure
+        'appium:app': './apks/swiss-airlines.apk', // Path matches workflow
+        'appium:appPackage': 'com.yoc.swiss.swiss', // Swiss Airlines package
+        'appium:appActivity': 'com.yoc.swiss.swiss.MainActivity', // Main activity
+        'appium:appWaitActivity': 'com.yoc.swiss.swiss.*', // Wait for any Swiss activity
         
         // For web browser testing (comment for native app testing)
         // browserName: 'Chrome',
         
-        // Additional configurations for CI
+        // GitHub Actions optimizations
         'appium:skipServerInstallation': false,
         'appium:skipDeviceInitialization': false,
-        'appium:disableWindowAnimation': true, // Improve performance
+        'appium:disableWindowAnimation': true, // Performance optimization
+        'appium:autoGrantPermissions': true, // Auto-grant app permissions
+        'appium:dontStopAppOnReset': false, // Allow clean app restart
     }],
     
     // Local Appium server configuration
@@ -40,9 +42,9 @@ export const config = {
     logLevel: 'info',
     bail: 0,
     baseUrl: 'https://www.google.com',
-    waitforTimeout: 30000,
-    connectionRetryTimeout: 120000,
-    connectionRetryCount: 3,
+    waitforTimeout: 60000, // Increased for GitHub Actions (slower environment)
+    connectionRetryTimeout: 180000, // 3 minutes for connection retry
+    connectionRetryCount: 5, // More retries for CI stability
     
     services: [
         ['appium', {
@@ -63,7 +65,7 @@ export const config = {
         'spec',
         ['junit', {
             outputDir: './test-results',
-            outputFileFormat: function(options) {
+            outputFileFormat: function(options: any) {
                 return `test-results-${options.cid}.xml`
             }
         }],
@@ -76,7 +78,7 @@ export const config = {
     
     mochaOpts: {
         ui: 'bdd',
-        timeout: 120000
+        timeout: 180000 // 3 minutes for GitHub Actions (slower CI environment)
     },
 
     // Hooks for better debugging
