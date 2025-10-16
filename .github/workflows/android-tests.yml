@@ -77,6 +77,11 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save -accel on
           disable-animations: true
           script: |
+            #!/bin/bash
+            set -e
+
+            # Crear un script temporal y ejecutarlo
+            cat << 'EOF' > run_tests.sh
             set -e
             echo "🔄 Waiting for emulator..."
             adb wait-for-device
@@ -142,6 +147,10 @@ jobs:
             echo "🛑 Stopping Appium..."
             kill $APPIUM_PID || true
             sleep 2
+            EOF
+
+            chmod +x run_tests.sh
+            ./run_tests.sh
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
