@@ -5,7 +5,7 @@ describe('Swiss Airlines App - Simple Test (com.yoc.swiss.swiss)', () => {
         console.log('🚀 Starting Swiss Airlines app test...')
         console.log('📱 Package: com.yoc.swiss.swiss (official Play Store version)')
         
-        // Wait for app to load completely (airlines apps can be slow)
+        // Wait for app to load completely (airline apps can be slow)
         await driver.pause(15000)
         
         // Take screenshot to verify app launched
