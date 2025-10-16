@@ -1,126 +1,231 @@
-name: Android Tests
+name: Android Tests- name: Run tests with Android emulator
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch: # Allow manual execution
+  uses: reactivecircus/android-emulator-runner@v2
 
-jobs:
-  android-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60  # Increased for emulator boot + tests
+on:  with:
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+  push:    api-level: 29
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
+    branches: [ main, develop ]    target: google_apis
 
-    - name: Install dependencies
-      run: |
-        echo "Installing WebDriverIO and test dependencies..."
-        npm ci
-        echo "Verifying installations..."
+  pull_request:    arch: x86_64
+
+    branches: [ main ]    profile: Nexus 6
+
+  workflow_dispatch: # Allow manual execution    cores: 2
+
+    ram-size: 3072M
+
+jobs:    heap-size: 512M
+
+  android-tests:    avd-name: test_emulator
+
+    runs-on: ubuntu-latest    force-avd-creation: true  # Ensure AVD is created
+
+    timeout-minutes: 60  # Increased for emulator boot + tests    emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save -accel on
+
+    disable-animations: true
+
+    steps:    script: |
+
+    - name: Checkout code      set -e
+
+      uses: actions/checkout@v4      echo "🔄 Waiting for emulator to be ready..."
+
+      adb wait-for-device
+
+    - name: Setup Node.js      
+
+      uses: actions/setup-node@v4      echo "⏳ Waiting for boot completion..."
+
+      with:      for i in $(seq 1 120); do
+
+        node-version: '20'        BOOT_COMPLETED=$(adb shell getprop sys.boot_completed 2>/dev/null || echo "")
+
+        cache: 'npm'        if [ "$BOOT_COMPLETED" = "1" ]; then
+
+          echo "✅ Boot completed successfully on attempt $i"
+
+    - name: Install dependencies          break
+
+      run: |        fi
+
+        echo "Installing WebDriverIO and test dependencies..."        echo "Boot status: \"$BOOT_COMPLETED\" (attempt $i/120)"
+
+        npm ci        sleep 5
+
+        echo "Verifying installations..."      done
+
         npm list @wdio/cli @wdio/appium-service --depth=0 || echo "Dependencies installed successfully"
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      # Unlock device
 
-    - name: Setup Android SDK
+    - name: Setup Java      adb shell input keyevent 82 || echo "Unlock keyevent sent"
+
+      uses: actions/setup-java@v4      adb shell input keyevent 4 || echo "Back keyevent sent"
+
+      with:
+
+        distribution: 'temurin'      # Disable animations
+
+        java-version: '17'      adb shell settings put global window_animation_scale 0 || echo "Animation scale failed"
+
+      adb shell settings put global transition_animation_scale 0 || echo "Transition scale failed"
+
+    - name: Setup Android SDK      adb shell settings put global animator_duration_scale 0 || echo "Animator scale failed"
+
       uses: android-actions/setup-android@v3
-      with:
-        api-level: 29
-        build-tools: 33.0.0
 
-    - name: Enable KVM (hardware acceleration)
+      with:      # Verify emulator
+
+        api-level: 29      echo "📱 Emulator verification..."
+
+        build-tools: 33.0.0      adb devices
+
+      echo "Boot completed: $(adb shell getprop sys.boot_completed)"
+
+    - name: Enable KVM (hardware acceleration)      sleep 10
+
       run: |
-        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules      mkdir -p screenshots
+
         sudo udevadm control --reload-rules
-        sudo udevadm trigger --name-match=kvm
 
-    - name: Download Swiss Airlines APK
+        sudo udevadm trigger --name-match=kvm      # Install Appium and drivers
+
+      npm install -g appium
+
+    - name: Download demo APK      appium driver update uiautomator2
+
       run: |
-        mkdir -p ./apks
-        echo "Downloading Swiss Airlines APK (com.yoc.swiss.swiss)..."
-        
-        # Try multiple sources for Swiss Airlines official app
-        SUCCESS=false
-        
-        # Method 1: APKMirror (most reliable)
-        if [ "$SUCCESS" = false ]; then
-          echo "🔄 Trying APKMirror..."
-          if curl -L -o ./apks/swiss-airlines.apk "https://www.apkmirror.com/apk/yoc-ag/swiss/swiss-4-19-0-release/swiss-4-19-0-android-apk-download/download/"; then
-            echo "✅ APKMirror download completed"
-            SUCCESS=true
-          fi
-        fi
-        
-        # Method 2: APKPure
-        if [ "$SUCCESS" = false ]; then
-          echo "🔄 Trying APKPure..."
-          if curl -L -o ./apks/swiss-airlines.apk "https://d.apkpure.com/b/APK/com.yoc.swiss.swiss?version=latest"; then
-            echo "✅ APKPure download completed"
-            SUCCESS=true
-          fi
-        fi
-        
-        # Method 3: APKCombo
-        if [ "$SUCCESS" = false ]; then
-          echo "🔄 Trying APKCombo..."
-          if curl -L -o ./apks/swiss-airlines.apk "https://apkcombo.com/downloader/#package=com.yoc.swiss.swiss"; then
-            echo "✅ APKCombo download completed"
-            SUCCESS=true
-          fi
-        fi
-        
-        # Method 4: Fallback to demo APK (Calculator)
-        if [ "$SUCCESS" = false ]; then
-          echo "⚠️ All downloads failed, using Calculator app as fallback..."
-          # Download Calculator APK as backup for testing
-          curl -L -o ./apks/swiss-airlines.apk "https://github.com/SimpleMobileTools/Simple-Calculator/releases/download/5.10.5/calculator-release.apk" || {
-            echo "❌ Even fallback failed, creating dummy file"
-            echo "dummy" > ./apks/swiss-airlines.apk
-          }
-        fi
-        
-        # Verify APK
-        if [ -f "./apks/swiss-airlines.apk" ]; then
-          APK_SIZE=$(stat -c%s "./apks/swiss-airlines.apk")
-          echo "📁 APK file size: $APK_SIZE bytes"
-          if [ $APK_SIZE -gt 100000 ]; then  # Reduced threshold
-            echo "✅ APK file downloaded successfully"
-          else
-            echo "⚠️ APK file seems small, but proceeding..."
-          fi
-        else
-          echo "❌ APK download failed completely"
-          exit 1
-        fi
+
+        mkdir -p ./apks      echo "🚀 Starting Appium server..."
+
+        echo "📦 Downloading demo APK (Simple Calculator)..."      appium --port 4723 --log-level error > appium.log 2>&1 &
+
+        curl -L -o ./apks/calculator.apk \      APPIUM_PID=$!
+
+          "https://github.com/SimpleMobileTools/Simple-Calculator/releases/download/5.10.5/calculator-release.apk"
+
+              echo "⏳ Waiting for Appium to start..."
+
+        APK_SIZE=$(stat -c%s "./apks/calculator.apk")      for i in $(seq 1 60); do
+
+        echo "📁 APK size: $APK_SIZE bytes"        if curl -s http://localhost:4723/status > /dev/null; then
+
+        if [ $APK_SIZE -lt 100000 ]; then          echo "✅ Appium server is running (attempt $i)"
+
+          echo "❌ APK file too small — download failed"          break
+
+          exit 1        fi
+
+        fi        echo "Waiting... (attempt $i/60)"
+
+        echo "✅ Calculator APK downloaded successfully"        sleep 2
+
+      done
 
     - name: Run tests with Android emulator
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 29
-        target: google_apis
-        arch: x86_64
-        profile: Nexus 6
-        cores: 2
+
+      uses: reactivecircus/android-emulator-runner@v2      if curl -s http://localhost:4723/status > /dev/null; then
+
+      with:        echo "✅ Appium server confirmed running"
+
+        api-level: 29      else
+
+        target: google_apis        echo "❌ Appium server failed to start"
+
+        arch: x86_64        cat appium.log
+
+        profile: Nexus 6        exit 1
+
+        cores: 2      fi
+
         ram-size: 3072M
-        heap-size: 512M
-        avd-name: test_emulator
-        force-avd-creation: true  # Ensure AVD is created
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save -accel on
-        disable-animations: true
-        script: echo "🔄 Waiting for emulator..." && adb wait-for-device && echo "⏳ Boot check..." && (i=1; while [ $i -le 120 ] && [ "$(adb shell getprop sys.boot_completed 2>/dev/null || echo '')" != "1" ]; do echo "Boot attempt $i/120"; i=$((i+1)); sleep 5; done) && echo "✅ Boot completed" && adb shell input keyevent 82 && adb shell input keyevent 4 && adb shell settings put global window_animation_scale 0 && adb shell settings put global transition_animation_scale 0 && adb shell settings put global animator_duration_scale 0 && echo "📱 Emulator ready" && adb devices && sleep 10 && mkdir -p screenshots && npm install -g appium && appium driver update uiautomator2 && echo "🚀 Starting Appium..." && appium --port 4723 --log-level error > appium.log 2>&1 & APPIUM_PID=$! && echo "⏳ Appium startup..." && (i=1; while [ $i -le 60 ] && ! curl -s http://localhost:4723/status >/dev/null; do echo "Appium attempt $i/60"; i=$((i+1)); sleep 2; done) && echo "✅ Appium ready" && npm run test:android && echo "🛑 Stopping Appium..." && kill $APPIUM_PID
+
+        heap-size: 512M      echo "🧪 Running Swiss Airlines tests..."
+
+        avd-name: test_emulator      npm run test:android || {
+
+        force-avd-creation: true  # Ensure AVD is created        echo "⚠️ Tests failed"
+
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save -accel on        tail -50 appium.log
+
+        disable-animations: true      }
+
+        script: |
+
+          set -e      echo "🛑 Stopping Appium server..."
+
+          echo "🔄 Waiting for emulator to be ready..."      kill $APPIUM_PID || true
+
+          adb wait-for-device      sleep 2
+
+          
+          echo "⏳ Waiting for boot completion..."
+          for i in $(seq 1 120); do
+            BOOT_COMPLETED=$(adb shell getprop sys.boot_completed 2>/dev/null || echo "")
+            if [ "$BOOT_COMPLETED" = "1" ]; then
+              echo "✅ Boot completed successfully on attempt $i"
+              break
+            fi
+            echo "Boot status: \"$BOOT_COMPLETED\" (attempt $i/120)"
+            sleep 5
+          done
+
+          # Unlock device
+          adb shell input keyevent 82 || echo "Unlock keyevent sent"
+          adb shell input keyevent 4 || echo "Back keyevent sent"
+
+          # Disable animations
+          adb shell settings put global window_animation_scale 0 || echo "Animation scale failed"
+          adb shell settings put global transition_animation_scale 0 || echo "Transition scale failed"
+          adb shell settings put global animator_duration_scale 0 || echo "Animator scale failed"
+
+          # Verify emulator
+          echo "📱 Emulator verification..."
+          adb devices
+          echo "Boot completed: $(adb shell getprop sys.boot_completed)"
+          sleep 10
+
+          mkdir -p screenshots
+
+          # Install Appium and drivers
+          npm install -g appium
+          appium driver update uiautomator2
+
+          echo "🚀 Starting Appium server..."
+          appium --port 4723 --log-level error > appium.log 2>&1 &
+          APPIUM_PID=$!
+
+          echo "⏳ Waiting for Appium to start..."
+          for i in $(seq 1 60); do
+            if curl -s http://localhost:4723/status > /dev/null; then
+              echo "✅ Appium server is running (attempt $i)"
+              break
+            fi
+            echo "Waiting... (attempt $i/60)"
+            sleep 2
+          done
+
+          if curl -s http://localhost:4723/status > /dev/null; then
+            echo "✅ Appium server confirmed running"
+          else
+            echo "❌ Appium server failed to start"
+            cat appium.log
+            exit 1
+          fi
+
+          echo "🧪 Running Calculator tests..."
+          npm run test:android || {
+            echo "⚠️ Tests failed"
+            tail -50 appium.log
+          }
+
+          echo "🛑 Stopping Appium server..."
+          kill $APPIUM_PID || true
+          sleep 2
 
     - name: Upload test results
       uses: actions/upload-artifact@v4

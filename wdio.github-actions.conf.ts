@@ -16,12 +16,12 @@ export const config = {
         'appium:fullReset': false,
         'appium:newCommandTimeout': 300000, // 5 minutes timeout (increased for CI)
         
-        // Swiss Airlines APK configuration (matches workflow download)
-        // APK downloaded in GitHub Actions from APKPure
-        'appium:app': './apks/swiss-airlines.apk', // Path matches workflow
-        'appium:appPackage': 'com.yoc.swiss.swiss', // Swiss Airlines package
-        'appium:appActivity': 'com.yoc.swiss.swiss.MainActivity', // Main activity
-        'appium:appWaitActivity': 'com.yoc.swiss.swiss.*', // Wait for any Swiss activity
+        // Calculator APK configuration (simple demo app)
+        // APK downloaded in GitHub Actions from SimpleMobileTools
+        'appium:app': './apks/calculator.apk', // Path matches workflow
+        'appium:appPackage': 'com.simplemobiletools.calculator', // Calculator package
+        'appium:appActivity': 'com.simplemobiletools.calculator.activities.MainActivity', // Main activity
+        'appium:appWaitActivity': 'com.simplemobiletools.calculator.*', // Wait for any Calculator activity
         
         // For web browser testing (comment for native app testing)
         // browserName: 'Chrome',
