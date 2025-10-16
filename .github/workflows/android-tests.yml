@@ -46,19 +46,23 @@ jobs:
           npm ci
           npm list @wdio/cli @wdio/appium-service --depth=0 || echo "Dependencies installed successfully"
 
-      - name: Download demo APK (Simple Calculator)
+      - name: Download demo APK
         run: |
           mkdir -p ./apks
           echo "📦 Downloading demo APK..."
-          curl -L -o ./apks/calculator.apk \
-            "https://github.com/SimpleMobileTools/Simple-Calculator/releases/download/5.10.5/calculator-release.apk"
+          curl -L --fail -o ./apks/calculator.apk \
+            "https://github.com/SimpleMobileTools/Simple-Calculator/releases/latest/download/calculator-release.apk"
+
           APK_SIZE=$(stat -c%s "./apks/calculator.apk")
           echo "📁 APK size: $APK_SIZE bytes"
           if [ $APK_SIZE -lt 100000 ]; then
             echo "❌ APK file too small — download failed"
+            echo "🔍 Downloaded file content:"
+            head -20 ./apks/calculator.apk || true
             exit 1
           fi
           echo "✅ Calculator APK downloaded successfully"
+
 
       - name: Run tests with Android emulator
         uses: reactivecircus/android-emulator-runner@v2
