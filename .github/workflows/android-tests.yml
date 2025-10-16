@@ -125,15 +125,17 @@ jobs:
           echo "🔄 Waiting for emulator to be ready..."
           adb wait-for-device
           
-          # Wait for boot completion (with retries)
+          # Wait for boot completion (sh compatible)
           echo "⏳ Waiting for boot completion..."
-          for i in {1..120}; do
+          i=1
+          while [ $i -le 120 ]; do
             BOOT_COMPLETED=$(adb shell getprop sys.boot_completed 2>/dev/null || echo "")
             if [ "$BOOT_COMPLETED" = "1" ]; then
               echo "✅ Boot completed successfully on attempt $i"
               break
             fi
             echo "Boot status: \"$BOOT_COMPLETED\" (attempt $i/120)"
+            i=$((i + 1))
             sleep 5
           done
           
@@ -164,14 +166,16 @@ jobs:
           appium --port 4723 --log-level error > appium.log 2>&1 &
           APPIUM_PID=$!
           
-          # Wait for Appium to start
+          # Wait for Appium to start (sh compatible)
           echo "⏳ Waiting for Appium to start..."
-          for i in {1..60}; do
+          i=1
+          while [ $i -le 60 ]; do
             if curl -s http://localhost:4723/status > /dev/null; then
               echo "✅ Appium server is running (attempt $i)"
               break
             fi
             echo "Waiting... (attempt $i/60)"
+            i=$((i + 1))
             sleep 2
           done
           
