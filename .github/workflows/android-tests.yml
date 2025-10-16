@@ -49,15 +49,15 @@ jobs:
       - name: Download demo APK
         run: |
           mkdir -p ./apks
-          echo "📦 Downloading demo APK..."
+          echo "📦 Downloading demo APK Calculator 5.12.0..."
           curl -L --fail -o ./apks/calculator.apk \
-            "https://github.com/SimpleMobileTools/Simple-Calculator/releases/latest/download/calculator-release.apk"
+            "https://github.com/SimpleMobileTools/Simple-Calculator/releases/download/5.12.0/calculator-fdroid-release.apk"
 
           APK_SIZE=$(stat -c%s "./apks/calculator.apk")
           echo "📁 APK size: $APK_SIZE bytes"
           if [ $APK_SIZE -lt 100000 ]; then
             echo "❌ APK file too small — download failed"
-            echo "🔍 Downloaded file content:"
+            echo "🔍 Showing first lines of file:"
             head -20 ./apks/calculator.apk || true
             exit 1
           fi
