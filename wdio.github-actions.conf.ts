@@ -47,17 +47,8 @@ export const config = {
     connectionRetryCount: 5, // More retries for CI stability
     
     services: [
-        ['appium', {
-            args: {
-                // Appium server configuration
-                port: 4723,
-                hostname: 'localhost',
-                relaxedSecurity: true,
-                allowInsecure: ['chromedriver_autodownload'],
-                logLevel: 'info'
-            },
-            logPath: './appium.log'
-        }]
+        // Appium service disabled - we start Appium manually in GitHub Actions workflow
+        // ['appium', { ... }]
     ],
     
     framework: 'mocha',
