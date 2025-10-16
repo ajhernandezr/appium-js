@@ -9,8 +9,7 @@
     "wdio:virtualbox": "wdio run ./wdio.virtualbox.conf.ts",
     "wdio:saucelabs": "wdio run ./wdio.saucelabs.conf.ts",
     "wdio:saucelabs:app": "wdio run ./wdio.saucelabs.conf.ts --spec=./test/specs/android-app.ts",
-        "test:android": "wdio run ./wdio.github-actions.conf.ts",
-    "test:swiss": "wdio run ./wdio.swiss-app.conf.ts",
+    "test:android": "wdio run ./wdio.github-actions.conf.ts",
     "test:android-web": "wdio run ./wdio.github-actions.conf.ts --spec=./test/specs/android-web.ts",
     "test:android-app": "wdio run ./wdio.github-actions.conf.ts --spec=./test/specs/android-app.ts"
   },

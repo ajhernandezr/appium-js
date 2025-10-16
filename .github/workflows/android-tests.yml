@@ -57,12 +57,10 @@ jobs:
           echo "📁 APK size: $APK_SIZE bytes"
           if [ $APK_SIZE -lt 100000 ]; then
             echo "❌ APK file too small — download failed"
-            echo "🔍 Showing first lines of file:"
             head -20 ./apks/calculator.apk || true
             exit 1
           fi
           echo "✅ Calculator APK downloaded successfully"
-
 
       - name: Run tests with Android emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -84,19 +82,23 @@ jobs:
             adb wait-for-device
 
             echo "⏳ Waiting for boot completion..."
+            set +e
             for i in $(seq 1 120); do
-              BOOT_COMPLETED=$(adb shell getprop sys.boot_completed 2>/dev/null || echo "")
+              BOOT_COMPLETED=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
               if [ "$BOOT_COMPLETED" = "1" ]; then
                 echo "✅ Boot completed on attempt $i"
                 break
               fi
-              echo "Boot status: \"$BOOT_COMPLETED\" (attempt $i/120)"
+              echo "Boot status: '$BOOT_COMPLETED' (attempt $i/120)"
               sleep 5
             done
+            set -e
 
-            adb shell input keyevent 82 || echo "Unlock sent"
-            adb shell input keyevent 4 || echo "Back sent"
+            echo "🔓 Unlocking device..."
+            adb shell input keyevent 82 || true
+            adb shell input keyevent 4 || true
 
+            echo "⚡ Disabling animations..."
             adb shell settings put global window_animation_scale 0
             adb shell settings put global transition_animation_scale 0
             adb shell settings put global animator_duration_scale 0
@@ -107,6 +109,7 @@ jobs:
 
             mkdir -p screenshots
 
+            echo "📦 Installing Appium..."
             npm install -g appium
             appium driver update uiautomator2
 
@@ -124,9 +127,7 @@ jobs:
               sleep 2
             done
 
-            if curl -s http://localhost:4723/status > /dev/null; then
-              echo "✅ Appium confirmed running"
-            else
+            if ! curl -s http://localhost:4723/status > /dev/null; then
               echo "❌ Appium failed to start"
               cat appium.log
               exit 1

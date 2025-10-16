@@ -1,12 +1,12 @@
-# Swiss Airlines APK Testing with GitHub Actions
+# Calculator APK Testing with GitHub Actions
 
-This project sets up automated testing for the Swiss Airlines application using Appium and WebDriverIO on GitHub Actions.
+This project sets up automated testing for the Simple Calculator application using Appium and WebDriverIO on GitHub Actions.
 
-## ✈️ Features
+## 🧮 Features
 
 - 🤖 **GitHub Actions**: Automated cloud execution (free)
 - 📱 **Android Emulator**: API 29 with Google APIs
-- 📦 **Automatic Download**: Swiss Airlines APK downloaded automatically
+- 📦 **Automatic Download**: Calculator APK downloaded automatically
 - 📸 **Screenshots**: Automatic captures for debugging
 - 🚀 **Simple Test**: Verifies the app launches correctly
 
@@ -17,7 +17,7 @@ This project sets up automated testing for the Swiss Airlines application using 
 1. Commit all files:
 ```bash
 git add .
-git commit -m "Add Swiss Airlines testing with GitHub Actions"
+git commit -m "Add Calculator testing with GitHub Actions"
 git push
 ```
 
@@ -37,13 +37,13 @@ To run manually:
 2. Click "Run workflow"
 3. Select branch and click "Run workflow"
 
-## 📱 Swiss Airlines APK
+## 📱 Calculator APK
 
 The APK is automatically downloaded from:
-- **Source**: APKPure
-- **Package**: `com.yoc.swiss.swiss` (official Play Store version)
-- **Play Store**: https://play.google.com/store/apps/details?id=com.yoc.swiss.swiss
-- **Location**: `./apks/swiss-airlines.apk`
+- **Source**: GitHub Releases (SimpleMobileTools)
+- **Package**: `com.simplemobiletools.calculator` (open source)
+- **GitHub**: https://github.com/SimpleMobileTools/Simple-Calculator
+- **Location**: `./apks/calculator.apk`
 
 ## 🧪 Simple Test
 
@@ -59,9 +59,8 @@ The test will verify:
 ├── .github/workflows/
 │   └── android-tests.yml          # GitHub Actions workflow
 ├── test/specs/
-│   └── android-app.ts             # Simple test for Swiss Airlines
+│   └── android-app.ts             # Simple test for Calculator
 ├── wdio.github-actions.conf.ts    # WebDriverIO config for GHA
-├── wdio.swiss-app.conf.ts         # Swiss-specific configuration
 └── package.json                   # Scripts and dependencies
 ```
 
@@ -71,8 +70,8 @@ The test will verify:
 # Run tests locally (requires emulator)
 npm run test:android
 
-# Run Swiss-specific configuration
-npm run test:swiss
+# Run Calculator app tests
+npm run test:android-app
 ```
 
 ## 📊 Results
@@ -80,7 +79,7 @@ npm run test:swiss
 Results include:
 - 📄 **JUnit reports**: `test-results/`
 - 📸 **Screenshots**: `screenshots/`
-- 🎯 **HTML report**: `test-results/swiss-airlines-report.html`
+- 🎯 **HTML report**: `test-results/calculator-report.html`
 
 ## 🔧 Advanced Configuration
 
@@ -92,9 +91,9 @@ Edit `test/specs/android-app.ts` to add more verifications.
 
 Modify the URL in `.github/workflows/android-tests.yml`:
 ```yaml
-- name: Download Swiss Airlines APK
+- name: Download Calculator APK
   run: |
-    curl -L "https://d.apkpure.com/b/APK/com.yoc.swiss.swiss?version=latest" -o ./apks/swiss-airlines.apk
+    curl -L "https://github.com/SimpleMobileTools/Simple-Calculator/releases/download/5.12.0/calculator-fdroid-release.apk" -o ./apks/calculator.apk
 ```
 
 ### Customize configuration
@@ -108,4 +107,4 @@ Modify `wdio.github-actions.conf.ts` to adjust timeouts, capabilities, etc.
 3. **Run Tests**: Execute the workflow manually
 4. **Review Results**: Check logs and artifacts on GitHub
 
-Ready to test Swiss Airlines in the cloud! 🚀✈️
+Ready to test Calculator in the cloud! 🚀🧮
