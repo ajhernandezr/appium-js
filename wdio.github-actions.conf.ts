@@ -2,8 +2,8 @@ export const config = {
     runner: 'local',
     tsConfigPath: './tsconfig.json',
     
-    // Local configuration for GitHub Actions
-    specs: ['./test/specs/android-web.ts'], // Updated to use the new filename
+    // Configuration for GitHub Actions - Swiss Airlines APK testing
+    specs: ['./test/specs/android-app.ts'], // Swiss Airlines native app test
     exclude: [],
     maxInstances: 1, // Only 1 instance for emulator
     
