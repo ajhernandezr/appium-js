@@ -140,17 +140,19 @@ jobs:
           echo "🔄 Waiting for emulator to be ready..."
           adb wait-for-device
           
-          # Wait for boot completion (simplified approach)
+          # Wait for boot completion (simple approach)
           echo "⏳ Waiting for boot completion..."
-          for i in $(seq 1 60); do
-            BOOT_COMPLETED=$(adb shell getprop sys.boot_completed 2>/dev/null || echo "")
-            if [ "$BOOT_COMPLETED" = "1" ]; then
-              echo "✅ Boot completed successfully on attempt $i"
-              break
-            fi
-            echo "Boot status: '$BOOT_COMPLETED' (attempt $i/60)"
-            sleep 2
-          done
+          bash -c '
+            for i in {1..60}; do
+              BOOT_COMPLETED=$(adb shell getprop sys.boot_completed 2>/dev/null || echo "")
+              if [ "$BOOT_COMPLETED" = "1" ]; then
+                echo "✅ Boot completed successfully on attempt $i"
+                break
+              fi
+              echo "Boot status: \"$BOOT_COMPLETED\" (attempt $i/60)"
+              sleep 2
+            done
+          '
           
           # Ensure device is unlocked and ready
           adb shell input keyevent 82 || echo "Unlock keyevent sent"
@@ -178,16 +180,18 @@ jobs:
           appium --port 4723 --log-level error > appium.log 2>&1 &
           APPIUM_PID=$!
           
-          # Wait for Appium to start (simplified)
+          # Wait for Appium to start (bash approach)
           echo "⏳ Waiting for Appium to start..."
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:4723/status > /dev/null; then
-              echo "✅ Appium server is running (attempt $i)"
-              break
-            fi
-            echo "Waiting... (attempt $i/30)"
-            sleep 2
-          done
+          bash -c '
+            for i in {1..30}; do
+              if curl -s http://localhost:4723/status > /dev/null; then
+                echo "✅ Appium server is running (attempt $i)"
+                break
+              fi
+              echo "Waiting... (attempt $i/30)"
+              sleep 2
+            done
+          '
           
           # Final verification
           if curl -s http://localhost:4723/status > /dev/null; then
